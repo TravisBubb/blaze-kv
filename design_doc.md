@@ -1,4 +1,4 @@
-# Blaze-KV: A High-Performance Key-Value Store (Phase 1: Single Node)
+# Blaze-KV: A High-Performance Key-Value Store
 
 ## Overview
 
