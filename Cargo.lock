@@ -11,5 +11,5 @@ name = "server"
 version = "0.1.0"
 
 [[package]]
-name = "store"
+name = "storage"
 version = "0.1.0"
