@@ -9,7 +9,7 @@ pub trait WalEncoder {
     fn encode(&self, entry: &WalEntry) -> Result<Vec<u8>, WalError>;
 
     /// Decodes the provided binary data into a WAL entry
-    fn decode(&self, data: &Vec<u8>) -> Result<WalEntry, WalError>;
+    fn decode(&self, data: &[u8]) -> Result<WalEntry, WalError>;
 }
 
 /// Represents a WalEncoder that uses bincode
@@ -29,7 +29,7 @@ impl Default for BincodeEncoder {
 
 /// Default configuration for bincode
 static BINCODE_CONFIG: Lazy<bincode::config::Configuration> =
-    Lazy::new(|| standard());
+    Lazy::new(standard);
 
 impl WalEncoder for BincodeEncoder {
     fn encode(&self, entry: &WalEntry) -> Result<Vec<u8>, WalError> {
@@ -37,7 +37,7 @@ impl WalEncoder for BincodeEncoder {
         Ok(bytes)
     }
 
-    fn decode(&self, data: &Vec<u8>) -> Result<WalEntry, WalError> {
+    fn decode(&self, data: &[u8]) -> Result<WalEntry, WalError> {
         let (entry, _): (WalEntry, usize) =
             bincode::decode_from_slice(data, *BINCODE_CONFIG)?;
         Ok(entry)
