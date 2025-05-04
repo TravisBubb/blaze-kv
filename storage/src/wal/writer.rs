@@ -1,7 +1,8 @@
-use std::{
+use std::{path::Path, pin::Pin};
+
+use tokio::{
     fs::{File, OpenOptions},
-    io::Write,
-    path::Path,
+    io::AsyncWriteExt,
 };
 
 use super::{encoder::WalEncoder, entry::WalEntry, error::WalError};
@@ -9,13 +10,20 @@ use super::{encoder::WalEncoder, entry::WalEntry, error::WalError};
 /// Represents an item that can write WAL entries
 pub trait WalWriter {
     /// Appends an entry to the WAL
-    fn append(&mut self, entry: &WalEntry) -> Result<(), WalError>;
+    fn append<'a>(
+        &'a mut self,
+        entry: &'a WalEntry,
+    ) -> Pin<Box<dyn Future<Output = Result<(), WalError>> + Send + 'a>>;
 
     /// Flushes the in-memory buffer of file writes
-    fn flush(&mut self) -> Result<(), WalError>;
+    fn flush<'a>(
+        &'a mut self,
+    ) -> Pin<Box<dyn Future<Output = Result<(), WalError>> + Send + 'a>>;
 
     /// Flushes the OS file write buffer (hardware cache)
-    fn sync(&mut self) -> Result<(), WalError>;
+    fn sync<'a>(
+        &'a mut self,
+    ) -> Pin<Box<dyn Future<Output = Result<(), WalError>> + Send + 'a>>;
 }
 
 /// Represents a WalWriter that writes to a file on disk
@@ -25,26 +33,48 @@ pub struct DiskWriter<E: WalEncoder> {
 }
 
 impl<E: WalEncoder> DiskWriter<E> {
-    pub fn new(encoder: E, path: impl AsRef<Path>) -> Result<Self, WalError> {
+    pub async fn new(
+        encoder: E,
+        path: impl AsRef<Path>,
+    ) -> Result<Self, WalError> {
         Ok(Self {
             encoder,
-            file: OpenOptions::new().create(true).append(true).open(path)?,
+            file: OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(path)
+                .await?,
         })
     }
 }
 
-impl<E: WalEncoder> WalWriter for DiskWriter<E> {
-    fn append(&mut self, entry: &WalEntry) -> Result<(), WalError> {
-        let bytes = self.encoder.encode(entry)?;
-        self.file.write_all(&bytes)?;
-        Ok(())
+impl<E: WalEncoder + Send> WalWriter for DiskWriter<E> {
+    fn append<'a>(
+        &'a mut self,
+        entry: &'a WalEntry,
+    ) -> Pin<Box<dyn Future<Output = Result<(), WalError>> + Send + 'a>> {
+        Box::pin(async move {
+            let bytes = self.encoder.encode(entry)?;
+            self.file.write_all(&bytes).await?;
+            Ok(())
+        })
     }
 
-    fn flush(&mut self) -> Result<(), WalError> {
-        todo!()
+    fn flush<'a>(
+        &'a mut self,
+    ) -> Pin<Box<dyn Future<Output = Result<(), WalError>> + Send + 'a>> {
+        Box::pin(async move {
+            self.file.flush().await?;
+            Ok(())
+        })
     }
 
-    fn sync(&mut self) -> Result<(), WalError> {
-        todo!()
+    fn sync<'a>(
+        &'a mut self,
+    ) -> Pin<Box<dyn Future<Output = Result<(), WalError>> + Send + 'a>> {
+        Box::pin(async move {
+            self.file.sync_all().await?;
+            Ok(())
+        })
     }
 }

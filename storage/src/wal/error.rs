@@ -1,5 +1,4 @@
 use bincode::error::{DecodeError, EncodeError};
-use std::io;
 use tokio::sync::{mpsc, oneshot};
 
 use super::message::WalMessage;
@@ -9,7 +8,7 @@ use super::message::WalMessage;
 pub enum WalError {
     Encode(EncodeError),
     Decode(DecodeError),
-    Io(io::Error),
+    Io(tokio::io::Error),
     OneshotRecv(oneshot::error::RecvError),
     MpscRecv(mpsc::error::TryRecvError),
     MpscSend(mpsc::error::SendError<WalMessage>),
@@ -42,8 +41,8 @@ impl From<DecodeError> for WalError {
     }
 }
 
-impl From<io::Error> for WalError {
-    fn from(err: io::Error) -> Self {
+impl From<tokio::io::Error> for WalError {
+    fn from(err: tokio::io::Error) -> Self {
         WalError::Io(err)
     }
 }

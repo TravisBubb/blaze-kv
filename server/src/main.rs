@@ -6,6 +6,7 @@ use storage::wal::{
 async fn main() {
     let encoder = BincodeEncoder::new();
     let writer = DiskWriter::new(encoder, "blazekv.wal")
+        .await
         .expect("failed to create writer");
     let config = WalConfig { buffer_size: 16 };
 
