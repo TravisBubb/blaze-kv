@@ -1,3 +1,5 @@
+use std::io;
+
 use bincode::error::{DecodeError, EncodeError};
 
 /// Represents an error in the WAL layer
@@ -5,6 +7,7 @@ use bincode::error::{DecodeError, EncodeError};
 pub enum WalError {
     Encode(EncodeError),
     Decode(DecodeError),
+    Io(io::Error),
 }
 
 impl std::fmt::Display for WalError {
@@ -12,6 +15,7 @@ impl std::fmt::Display for WalError {
         match self {
             WalError::Encode(e) => write!(f, "Encode error: {}", e),
             WalError::Decode(e) => write!(f, "Decode error: {}", e),
+            WalError::Io(e) => write!(f, "IO error: {}", e),
         }
     }
 }
@@ -27,5 +31,11 @@ impl From<EncodeError> for WalError {
 impl From<DecodeError> for WalError {
     fn from(err: DecodeError) -> Self {
         WalError::Decode(err)
+    }
+}
+
+impl From<io::Error> for WalError {
+    fn from(err: io::Error) -> Self {
+        WalError::Io(err)
     }
 }
