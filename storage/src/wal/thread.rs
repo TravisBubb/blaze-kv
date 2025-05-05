@@ -14,10 +14,8 @@ pub fn spawn_wal_thread<W: WalWriter + Send + 'static>(
         while let Some(msg) = rx.recv().await {
             match msg {
                 WalMessage::Write(entry, ack) => {
-                    println!("Writing entry to file");
                     let result = writer.append(&entry).await;
                     if let Some(ack_tx) = ack {
-                        println!("Sending ACK");
                         let _ = ack_tx.send(result);
                     }
                 }
@@ -26,7 +24,6 @@ pub fn spawn_wal_thread<W: WalWriter + Send + 'static>(
                 WalMessage::Shutdown(ack) => {
                     // TODO: Flush and Sync before shutting down
                     if let Some(ack_tx) = ack {
-                        println!("Sending shutdown ACK");
                         let _ = ack_tx.send(Ok(()));
                     }
                     return;
